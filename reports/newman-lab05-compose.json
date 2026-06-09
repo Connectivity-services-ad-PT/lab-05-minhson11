@@ -1,0 +1,3050 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "aac04ac6-03eb-4e3d-8118-b187ac0bcd2a",
+        "name": "Health Check",
+        "request": {
+          "description": {
+            "content": "Check if the API service is healthy",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "health"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "429db2db-8ef1-4083-90f5-376fea7c654f",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 200\", function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "",
+                "pm.test(\"Response has correct structure\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData).to.have.property('status');",
+                "    pm.expect(jsonData).to.have.property('service');",
+                "    pm.expect(jsonData).to.have.property('version');",
+                "});",
+                "",
+                "pm.test(\"Service is healthy\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.status).to.eql('ok');",
+                "    pm.expect(jsonData.service).to.eql('iot-ingestion');",
+                "});"
+              ],
+              "_lastExecutionId": "28f0a5a7-0962-43d5-a88f-22bd9bcf72b1"
+            }
+          }
+        ]
+      },
+      {
+        "id": "3ed1eccc-2526-4733-bbb0-2c65cd87238a",
+        "name": "Create Reading - Valid",
+        "request": {
+          "description": {
+            "content": "Create a valid sensor reading",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "readings"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:30:00+07:00\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "84111cc6-8492-422a-b5d0-bf5ab4b75282",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 201\", function () {",
+                "    pm.response.to.have.status(201);",
+                "});",
+                "",
+                "pm.test(\"Response has correct structure\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData).to.have.property('reading_id');",
+                "    pm.expect(jsonData).to.have.property('device_id');",
+                "    pm.expect(jsonData).to.have.property('metric');",
+                "    pm.expect(jsonData).to.have.property('accepted');",
+                "    pm.expect(jsonData).to.have.property('created_at');",
+                "});",
+                "",
+                "pm.test(\"Reading was accepted\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.accepted).to.be.true;",
+                "    pm.collectionVariables.set(\"lastReadingId\", jsonData.reading_id);",
+                "});"
+              ],
+              "_lastExecutionId": "d509cbce-8332-4acd-b523-6b839f91a14a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "d3dab688-0939-4f30-a2a7-2829c12f7c20",
+        "name": "Create Reading - High Temperature",
+        "request": {
+          "description": {
+            "content": "Create reading with high temperature to trigger warning",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "readings"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"device_id\": \"ESP32-LAB-A02\",\n  \"metric\": \"temperature\",\n  \"value\": 75.0,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:35:00+07:00\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "d12177c6-378d-43a2-9e2e-23c0555860b4",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 201\", function () {",
+                "    pm.response.to.have.status(201);",
+                "});",
+                "",
+                "pm.test(\"Warning header is present\", function () {",
+                "    pm.response.to.have.header('X-Warning');",
+                "    pm.expect(pm.response.headers.get('X-Warning')).to.eql('high-temperature');",
+                "});"
+              ],
+              "_lastExecutionId": "05a56292-79ad-48c1-aaba-c7bcd9fb8007"
+            }
+          }
+        ]
+      },
+      {
+        "id": "89833848-2744-494c-9c84-129d0691a7ab",
+        "name": "Create Reading - Unauthorized",
+        "request": {
+          "description": {
+            "content": "Attempt to create reading without authorization token",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "readings"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 25.0,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:40:00+07:00\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "641f6159-ff7e-42a2-8750-245779a71260",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 401\", function () {",
+                "    pm.response.to.have.status(401);",
+                "});",
+                "",
+                "pm.test(\"Response is problem+json\", function () {",
+                "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                "});",
+                "",
+                "pm.test(\"Error details are correct\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.status).to.eql(401);",
+                "    pm.expect(jsonData.title).to.eql('Unauthorized');",
+                "});"
+              ],
+              "_lastExecutionId": "b8b3e475-d25e-4ce3-aa71-deb5d9687297"
+            }
+          }
+        ]
+      },
+      {
+        "id": "00c32ef2-5c01-4793-96a5-c57990ac58ea",
+        "name": "Get Latest Readings",
+        "request": {
+          "description": {
+            "content": "Get the latest sensor readings",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "readings",
+              "latest"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "3c66b82c-a071-4bbf-bab1-bae534b54a59",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 200\", function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "",
+                "pm.test(\"Response has items array\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData).to.have.property('items');",
+                "    pm.expect(jsonData.items).to.be.an('array');",
+                "});",
+                "",
+                "pm.test(\"Items have correct structure\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    if (jsonData.items.length > 0) {",
+                "        var item = jsonData.items[0];",
+                "        pm.expect(item).to.have.property('reading_id');",
+                "        pm.expect(item).to.have.property('device_id');",
+                "        pm.expect(item).to.have.property('metric');",
+                "        pm.expect(item).to.have.property('value');",
+                "    }",
+                "});"
+              ],
+              "_lastExecutionId": "3df2d78b-82d1-4a58-8664-73056dcce920"
+            }
+          }
+        ]
+      },
+      {
+        "id": "a9d98480-e25f-4a8e-be58-e9839f866d2b",
+        "name": "Get Reading by ID",
+        "request": {
+          "description": {
+            "content": "Get a specific reading by ID",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "readings",
+              "{{lastReadingId}}"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "6f39660c-882c-47fb-aaf1-71c7876c4077",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 200\", function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "",
+                "pm.test(\"Reading details are correct\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData).to.have.property('reading_id');",
+                "    pm.expect(jsonData).to.have.property('device_id');",
+                "    pm.expect(jsonData).to.have.property('metric');",
+                "    pm.expect(jsonData).to.have.property('value');",
+                "    pm.expect(jsonData).to.have.property('timestamp');",
+                "});"
+              ],
+              "_lastExecutionId": "b447d776-0090-4ae4-87d6-bff47efc4478"
+            }
+          }
+        ]
+      },
+      {
+        "id": "972218c6-a1c1-47a8-9343-2d29569688d9",
+        "name": "Get Reading by ID - Not Found",
+        "request": {
+          "description": {
+            "content": "Attempt to get a non-existent reading",
+            "type": "text/plain"
+          },
+          "url": {
+            "path": [
+              "readings",
+              "R-20260609-9999"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{authToken}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "559f19ad-daf1-46a3-b195-f6472764afa2",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status code is 404\", function () {",
+                "    pm.response.to.have.status(404);",
+                "});",
+                "",
+                "pm.test(\"Response is problem+json\", function () {",
+                "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                "});",
+                "",
+                "pm.test(\"Error details are correct\", function () {",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.status).to.eql(404);",
+                "    pm.expect(jsonData.title).to.eql('Not Found');",
+                "});"
+              ],
+              "_lastExecutionId": "3dc8b1a5-cb1c-4cb1-89e3-4213bc62fd26"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "",
+        "key": "lastReadingId"
+      }
+    ],
+    "info": {
+      "_postman_id": "c07a4831-7340-403e-af38-348209675488",
+      "name": "Lab 05 - IoT Ingestion API",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Test collection for Lab 05 Docker Compose stack",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "_": {
+      "postman_variable_scope": "environment",
+      "postman_exported_at": "2026-06-08T00:00:00+07:00",
+      "postman_exported_using": "Postman"
+    },
+    "id": "178f843a-c058-468f-8b25-570165a1acb3",
+    "name": "FIT4110 Lab05 Local",
+    "values": [
+      {
+        "type": "any",
+        "value": "http://localhost:8000",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "local-dev-token",
+        "key": "authToken"
+      },
+      {
+        "type": "any",
+        "value": "local",
+        "key": "env"
+      }
+    ]
+  },
+  "globals": {
+    "id": "404a1476-e226-4511-87e8-0e0f4fcbe8c0",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 19,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 7.714285714285714,
+      "responseMin": 3,
+      "responseMax": 29,
+      "responseSd": 8.843307166024092,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1780969984958,
+      "completed": 1780969985647
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 7,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "44e98048-e02a-4f0d-8ce5-3e9fae3dd076",
+          "httpRequestId": "7ffa8ab9-afb6-41a5-82d5-ba2b605f0b33"
+        },
+        "item": {
+          "id": "aac04ac6-03eb-4e3d-8118-b187ac0bcd2a",
+          "name": "Health Check",
+          "request": {
+            "description": {
+              "content": "Check if the API service is healthy",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "health"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "429db2db-8ef1-4083-90f5-376fea7c654f",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('service');",
+                  "    pm.expect(jsonData).to.have.property('version');",
+                  "});",
+                  "",
+                  "pm.test(\"Service is healthy\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('ok');",
+                  "    pm.expect(jsonData.service).to.eql('iot-ingestion');",
+                  "});"
+                ],
+                "_lastExecutionId": "28f0a5a7-0962-43d5-a88f-22bd9bcf72b1"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Check if the API service is healthy",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "health"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2085a436-f45a-404a-be23-d088149c8245",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "ec41b593-0836-451c-8297-4b701b1d0f3c",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "59"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              34,
+              111,
+              107,
+              34,
+              44,
+              34,
+              115,
+              101,
+              114,
+              118,
+              105,
+              99,
+              101,
+              34,
+              58,
+              34,
+              105,
+              111,
+              116,
+              45,
+              105,
+              110,
+              103,
+              101,
+              115,
+              116,
+              105,
+              111,
+              110,
+              34,
+              44,
+              34,
+              118,
+              101,
+              114,
+              115,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              48,
+              46,
+              53,
+              46,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 29,
+          "responseSize": 59
+        },
+        "id": "aac04ac6-03eb-4e3d-8118-b187ac0bcd2a",
+        "assertions": [
+          {
+            "assertion": "Status code is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Response has correct structure",
+            "skipped": false
+          },
+          {
+            "assertion": "Service is healthy",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "bef7f983-6c13-4dce-8862-af8294d7df22",
+          "length": 7,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "56fc3d9a-f497-4273-a6a2-c9874e288660"
+        },
+        "item": {
+          "id": "3ed1eccc-2526-4733-bbb0-2c65cd87238a",
+          "name": "Create Reading - Valid",
+          "request": {
+            "description": {
+              "content": "Create a valid sensor reading",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "readings"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:30:00+07:00\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "84111cc6-8492-422a-b5d0-bf5ab4b75282",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('reading_id');",
+                  "    pm.expect(jsonData).to.have.property('device_id');",
+                  "    pm.expect(jsonData).to.have.property('metric');",
+                  "    pm.expect(jsonData).to.have.property('accepted');",
+                  "    pm.expect(jsonData).to.have.property('created_at');",
+                  "});",
+                  "",
+                  "pm.test(\"Reading was accepted\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.accepted).to.be.true;",
+                  "    pm.collectionVariables.set(\"lastReadingId\", jsonData.reading_id);",
+                  "});"
+                ],
+                "_lastExecutionId": "d509cbce-8332-4acd-b523-6b839f91a14a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Create a valid sensor reading",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "readings"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer local-dev-token"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "97dc19ab-c00b-46a2-820f-4aa01c3eca1b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "143",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 31.5,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:30:00+07:00\"\n}"
+          }
+        },
+        "response": {
+          "id": "30749f01-02ef-47b9-a46a-307ae7bbca14",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "140"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              48,
+              48,
+              48,
+              49,
+              34,
+              44,
+              34,
+              100,
+              101,
+              118,
+              105,
+              99,
+              101,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              51,
+              50,
+              45,
+              76,
+              65,
+              66,
+              45,
+              65,
+              48,
+              49,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              34,
+              58,
+              34,
+              116,
+              101,
+              109,
+              112,
+              101,
+              114,
+              97,
+              116,
+              117,
+              114,
+              101,
+              34,
+              44,
+              34,
+              97,
+              99,
+              99,
+              101,
+              112,
+              116,
+              101,
+              100,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              49,
+              58,
+              53,
+              51,
+              58,
+              48,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 8,
+          "responseSize": 140
+        },
+        "id": "3ed1eccc-2526-4733-bbb0-2c65cd87238a",
+        "assertions": [
+          {
+            "assertion": "Status code is 201",
+            "skipped": false
+          },
+          {
+            "assertion": "Response has correct structure",
+            "skipped": false
+          },
+          {
+            "assertion": "Reading was accepted",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "61b6ba27-3262-4f92-be3a-d710ba631de6",
+          "length": 7,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "4b8d6d09-3594-4f80-b383-1a6ceaa383b3"
+        },
+        "item": {
+          "id": "d3dab688-0939-4f30-a2a7-2829c12f7c20",
+          "name": "Create Reading - High Temperature",
+          "request": {
+            "description": {
+              "content": "Create reading with high temperature to trigger warning",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "readings"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"ESP32-LAB-A02\",\n  \"metric\": \"temperature\",\n  \"value\": 75.0,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:35:00+07:00\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d12177c6-378d-43a2-9e2e-23c0555860b4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Warning header is present\", function () {",
+                  "    pm.response.to.have.header('X-Warning');",
+                  "    pm.expect(pm.response.headers.get('X-Warning')).to.eql('high-temperature');",
+                  "});"
+                ],
+                "_lastExecutionId": "05a56292-79ad-48c1-aaba-c7bcd9fb8007"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Create reading with high temperature to trigger warning",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "readings"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer local-dev-token"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "47866e3b-e9c8-4310-8501-72b478bfdf45",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "143",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"device_id\": \"ESP32-LAB-A02\",\n  \"metric\": \"temperature\",\n  \"value\": 75.0,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:35:00+07:00\"\n}"
+          }
+        },
+        "response": {
+          "id": "e4ae6354-0081-445d-bcd2-e40b2eb3f72e",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "140"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            },
+            {
+              "key": "x-warning",
+              "value": "high-temperature"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              48,
+              48,
+              48,
+              50,
+              34,
+              44,
+              34,
+              100,
+              101,
+              118,
+              105,
+              99,
+              101,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              51,
+              50,
+              45,
+              76,
+              65,
+              66,
+              45,
+              65,
+              48,
+              50,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              34,
+              58,
+              34,
+              116,
+              101,
+              109,
+              112,
+              101,
+              114,
+              97,
+              116,
+              117,
+              114,
+              101,
+              34,
+              44,
+              34,
+              97,
+              99,
+              99,
+              101,
+              112,
+              116,
+              101,
+              100,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              49,
+              58,
+              53,
+              51,
+              58,
+              48,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 140
+        },
+        "id": "d3dab688-0939-4f30-a2a7-2829c12f7c20",
+        "assertions": [
+          {
+            "assertion": "Status code is 201",
+            "skipped": false
+          },
+          {
+            "assertion": "Warning header is present",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "64b20409-b2c8-4d75-9c4d-ad92c85af7af",
+          "length": 7,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "1ee2ae1e-4f63-4807-9274-80fb9b3cc37f"
+        },
+        "item": {
+          "id": "89833848-2744-494c-9c84-129d0691a7ab",
+          "name": "Create Reading - Unauthorized",
+          "request": {
+            "description": {
+              "content": "Attempt to create reading without authorization token",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "readings"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 25.0,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:40:00+07:00\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "641f6159-ff7e-42a2-8750-245779a71260",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is problem+json\", function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "});",
+                  "",
+                  "pm.test(\"Error details are correct\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(401);",
+                  "    pm.expect(jsonData.title).to.eql('Unauthorized');",
+                  "});"
+                ],
+                "_lastExecutionId": "b8b3e475-d25e-4ce3-aa71-deb5d9687297"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Attempt to create reading without authorization token",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "readings"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "8deb7aa7-8d3e-4155-a8c5-9fbeaa2b67cf",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "143",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"device_id\": \"ESP32-LAB-A01\",\n  \"metric\": \"temperature\",\n  \"value\": 25.0,\n  \"unit\": \"celsius\",\n  \"timestamp\": \"2026-06-09T08:40:00+07:00\"\n}"
+          }
+        },
+        "response": {
+          "id": "5762454a-4d22-4800-8443-16b762f331be",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "158"
+            },
+            {
+              "key": "content-type",
+              "value": "application/problem+json"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              121,
+              112,
+              101,
+              34,
+              58,
+              34,
+              104,
+              116,
+              116,
+              112,
+              115,
+              58,
+              47,
+              47,
+              115,
+              109,
+              97,
+              114,
+              116,
+              45,
+              99,
+              97,
+              109,
+              112,
+              117,
+              115,
+              46,
+              108,
+              111,
+              99,
+              97,
+              108,
+              47,
+              112,
+              114,
+              111,
+              98,
+              108,
+              101,
+              109,
+              115,
+              47,
+              117,
+              110,
+              97,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              101,
+              100,
+              34,
+              44,
+              34,
+              116,
+              105,
+              116,
+              108,
+              101,
+              34,
+              58,
+              34,
+              85,
+              110,
+              97,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              101,
+              100,
+              34,
+              44,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              52,
+              48,
+              49,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              77,
+              105,
+              115,
+              115,
+              105,
+              110,
+              103,
+              32,
+              65,
+              117,
+              116,
+              104,
+              111,
+              114,
+              105,
+              122,
+              97,
+              116,
+              105,
+              111,
+              110,
+              32,
+              104,
+              101,
+              97,
+              100,
+              101,
+              114,
+              34,
+              44,
+              34,
+              105,
+              110,
+              115,
+              116,
+              97,
+              110,
+              99,
+              101,
+              34,
+              58,
+              34,
+              47,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              115,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 158
+        },
+        "id": "89833848-2744-494c-9c84-129d0691a7ab",
+        "assertions": [
+          {
+            "assertion": "Status code is 401",
+            "skipped": false
+          },
+          {
+            "assertion": "Response is problem+json",
+            "skipped": false
+          },
+          {
+            "assertion": "Error details are correct",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "faa55d57-8243-43d7-8ba9-99b3ba1d7e23",
+          "length": 7,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "e3264e05-fd88-4721-bc9c-68fa7ca56782"
+        },
+        "item": {
+          "id": "00c32ef2-5c01-4793-96a5-c57990ac58ea",
+          "name": "Get Latest Readings",
+          "request": {
+            "description": {
+              "content": "Get the latest sensor readings",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "readings",
+                "latest"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3c66b82c-a071-4bbf-bab1-bae534b54a59",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has items array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('items');",
+                  "    pm.expect(jsonData.items).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Items have correct structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.items.length > 0) {",
+                  "        var item = jsonData.items[0];",
+                  "        pm.expect(item).to.have.property('reading_id');",
+                  "        pm.expect(item).to.have.property('device_id');",
+                  "        pm.expect(item).to.have.property('metric');",
+                  "        pm.expect(item).to.have.property('value');",
+                  "    }",
+                  "});"
+                ],
+                "_lastExecutionId": "3df2d78b-82d1-4a58-8664-73056dcce920"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Get the latest sensor readings",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "readings",
+              "latest"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer local-dev-token"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "47e67ff3-7c43-461e-8ab5-5f8c3fd6720c",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "64851aec-b2ee-4ce1-b590-abe4261d7fa1",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "401"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              116,
+              101,
+              109,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              48,
+              48,
+              48,
+              49,
+              34,
+              44,
+              34,
+              100,
+              101,
+              118,
+              105,
+              99,
+              101,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              51,
+              50,
+              45,
+              76,
+              65,
+              66,
+              45,
+              65,
+              48,
+              49,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              34,
+              58,
+              34,
+              116,
+              101,
+              109,
+              112,
+              101,
+              114,
+              97,
+              116,
+              117,
+              114,
+              101,
+              34,
+              44,
+              34,
+              118,
+              97,
+              108,
+              117,
+              101,
+              34,
+              58,
+              51,
+              49,
+              46,
+              53,
+              44,
+              34,
+              117,
+              110,
+              105,
+              116,
+              34,
+              58,
+              34,
+              99,
+              101,
+              108,
+              115,
+              105,
+              117,
+              115,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              56,
+              58,
+              51,
+              48,
+              58,
+              48,
+              48,
+              43,
+              48,
+              55,
+              58,
+              48,
+              48,
+              34,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              49,
+              58,
+              53,
+              51,
+              58,
+              48,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125,
+              44,
+              123,
+              34,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              48,
+              48,
+              48,
+              50,
+              34,
+              44,
+              34,
+              100,
+              101,
+              118,
+              105,
+              99,
+              101,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              51,
+              50,
+              45,
+              76,
+              65,
+              66,
+              45,
+              65,
+              48,
+              50,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              34,
+              58,
+              34,
+              116,
+              101,
+              109,
+              112,
+              101,
+              114,
+              97,
+              116,
+              117,
+              114,
+              101,
+              34,
+              44,
+              34,
+              118,
+              97,
+              108,
+              117,
+              101,
+              34,
+              58,
+              55,
+              53,
+              46,
+              48,
+              44,
+              34,
+              117,
+              110,
+              105,
+              116,
+              34,
+              58,
+              34,
+              99,
+              101,
+              108,
+              115,
+              105,
+              117,
+              115,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              56,
+              58,
+              51,
+              53,
+              58,
+              48,
+              48,
+              43,
+              48,
+              55,
+              58,
+              48,
+              48,
+              34,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              49,
+              58,
+              53,
+              51,
+              58,
+              48,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 4,
+          "responseSize": 401
+        },
+        "id": "00c32ef2-5c01-4793-96a5-c57990ac58ea",
+        "assertions": [
+          {
+            "assertion": "Status code is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Response has items array",
+            "skipped": false
+          },
+          {
+            "assertion": "Items have correct structure",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f3bf4b31-01ff-4f37-a826-8de7c915b560",
+          "length": 7,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "cf692e42-58c9-4677-8e5e-03151f4a65b0"
+        },
+        "item": {
+          "id": "a9d98480-e25f-4a8e-be58-e9839f866d2b",
+          "name": "Get Reading by ID",
+          "request": {
+            "description": {
+              "content": "Get a specific reading by ID",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "readings",
+                "{{lastReadingId}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "6f39660c-882c-47fb-aaf1-71c7876c4077",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Reading details are correct\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('reading_id');",
+                  "    pm.expect(jsonData).to.have.property('device_id');",
+                  "    pm.expect(jsonData).to.have.property('metric');",
+                  "    pm.expect(jsonData).to.have.property('value');",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "});"
+                ],
+                "_lastExecutionId": "b447d776-0090-4ae4-87d6-bff47efc4478"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Get a specific reading by ID",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "readings",
+              "R-20260609-0001"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer local-dev-token"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "93503852-8197-41ab-8e16-35f7fd42ceca",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "20c35aef-5448-4c2c-8734-f1dc9d8afea7",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "194"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              48,
+              48,
+              48,
+              49,
+              34,
+              44,
+              34,
+              100,
+              101,
+              118,
+              105,
+              99,
+              101,
+              95,
+              105,
+              100,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              51,
+              50,
+              45,
+              76,
+              65,
+              66,
+              45,
+              65,
+              48,
+              49,
+              34,
+              44,
+              34,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              34,
+              58,
+              34,
+              116,
+              101,
+              109,
+              112,
+              101,
+              114,
+              97,
+              116,
+              117,
+              114,
+              101,
+              34,
+              44,
+              34,
+              118,
+              97,
+              108,
+              117,
+              101,
+              34,
+              58,
+              51,
+              49,
+              46,
+              53,
+              44,
+              34,
+              117,
+              110,
+              105,
+              116,
+              34,
+              58,
+              34,
+              99,
+              101,
+              108,
+              115,
+              105,
+              117,
+              115,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              56,
+              58,
+              51,
+              48,
+              58,
+              48,
+              48,
+              43,
+              48,
+              55,
+              58,
+              48,
+              48,
+              34,
+              44,
+              34,
+              99,
+              114,
+              101,
+              97,
+              116,
+              101,
+              100,
+              95,
+              97,
+              116,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              54,
+              45,
+              48,
+              57,
+              84,
+              48,
+              49,
+              58,
+              53,
+              51,
+              58,
+              48,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 4,
+          "responseSize": 194
+        },
+        "id": "a9d98480-e25f-4a8e-be58-e9839f866d2b",
+        "assertions": [
+          {
+            "assertion": "Status code is 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Reading details are correct",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "bb47a5a6-fe0b-4d75-9733-ecd7362424fc",
+          "length": 7,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "6a0486f3-1eb7-4ba0-aae7-336cf6204865"
+        },
+        "item": {
+          "id": "972218c6-a1c1-47a8-9343-2d29569688d9",
+          "name": "Get Reading by ID - Not Found",
+          "request": {
+            "description": {
+              "content": "Attempt to get a non-existent reading",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "readings",
+                "R-20260609-9999"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "559f19ad-daf1-46a3-b195-f6472764afa2",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is problem+json\", function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "});",
+                  "",
+                  "pm.test(\"Error details are correct\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(404);",
+                  "    pm.expect(jsonData.title).to.eql('Not Found');",
+                  "});"
+                ],
+                "_lastExecutionId": "3dc8b1a5-cb1c-4cb1-89e3-4213bc62fd26"
+              }
+            }
+          ]
+        },
+        "request": {
+          "description": {
+            "content": "Attempt to get a non-existent reading",
+            "type": "text/plain"
+          },
+          "url": {
+            "protocol": "http",
+            "port": "8000",
+            "path": [
+              "readings",
+              "R-20260609-9999"
+            ],
+            "host": [
+              "localhost"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer local-dev-token"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9700c184-8fc0-40cc-b21f-1e0df4546230",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "localhost:8000",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "0c24e03d-44f4-4328-97e9-b1a3fec371c2",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 09 Jun 2026 01:53:04 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "178"
+            },
+            {
+              "key": "content-type",
+              "value": "application/problem+json"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              121,
+              112,
+              101,
+              34,
+              58,
+              34,
+              104,
+              116,
+              116,
+              112,
+              115,
+              58,
+              47,
+              47,
+              115,
+              109,
+              97,
+              114,
+              116,
+              45,
+              99,
+              97,
+              109,
+              112,
+              117,
+              115,
+              46,
+              108,
+              111,
+              99,
+              97,
+              108,
+              47,
+              112,
+              114,
+              111,
+              98,
+              108,
+              101,
+              109,
+              115,
+              47,
+              110,
+              111,
+              116,
+              45,
+              102,
+              111,
+              117,
+              110,
+              100,
+              34,
+              44,
+              34,
+              116,
+              105,
+              116,
+              108,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              116,
+              32,
+              70,
+              111,
+              117,
+              110,
+              100,
+              34,
+              44,
+              34,
+              115,
+              116,
+              97,
+              116,
+              117,
+              115,
+              34,
+              58,
+              52,
+              48,
+              52,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              105,
+              108,
+              34,
+              58,
+              34,
+              82,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              32,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              57,
+              57,
+              57,
+              57,
+              32,
+              100,
+              111,
+              101,
+              115,
+              32,
+              110,
+              111,
+              116,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              34,
+              44,
+              34,
+              105,
+              110,
+              115,
+              116,
+              97,
+              110,
+              99,
+              101,
+              34,
+              58,
+              34,
+              47,
+              114,
+              101,
+              97,
+              100,
+              105,
+              110,
+              103,
+              115,
+              47,
+              82,
+              45,
+              50,
+              48,
+              50,
+              54,
+              48,
+              54,
+              48,
+              57,
+              45,
+              57,
+              57,
+              57,
+              57,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3,
+          "responseSize": 178
+        },
+        "id": "972218c6-a1c1-47a8-9343-2d29569688d9",
+        "assertions": [
+          {
+            "assertion": "Status code is 404",
+            "skipped": false
+          },
+          {
+            "assertion": "Response is problem+json",
+            "skipped": false
+          },
+          {
+            "assertion": "Error details are correct",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1270
+    },
+    "failures": [],
+    "error": null
+  }
+}

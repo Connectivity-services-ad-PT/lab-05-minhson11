@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Lab 05 - IoT Ingestion API" tests="7" time="0.047">
+  <testsuite name="Health Check" id="945beb62-c46c-41b2-8797-d29a5a2aabc3" timestamp="2026-06-09T02:00:24.938Z" tests="3" failures="0" errors="0" time="0.025">
+    <testcase name="Status code is 200" time="0.025" classname="HealthCheck"/>
+    <testcase name="Response has correct structure" time="0.025" classname="HealthCheck"/>
+    <testcase name="Service is healthy" time="0.025" classname="HealthCheck"/>
+  </testsuite>
+  <testsuite name="Create Reading - Valid" id="23f458b2-533d-4608-b337-7be3cb85f2e6" timestamp="2026-06-09T02:00:24.938Z" tests="3" failures="0" errors="0" time="0.005">
+    <testcase name="Status code is 201" time="0.005" classname="CreateReadingValid"/>
+    <testcase name="Response has correct structure" time="0.005" classname="CreateReadingValid"/>
+    <testcase name="Reading was accepted" time="0.005" classname="CreateReadingValid"/>
+  </testsuite>
+  <testsuite name="Create Reading - High Temperature" id="f3a43945-0c41-4fa4-9d35-b242af2d5b1e" timestamp="2026-06-09T02:00:24.938Z" tests="2" failures="0" errors="0" time="0.004">
+    <testcase name="Status code is 201" time="0.004" classname="CreateReadingHighTemperature"/>
+    <testcase name="Warning header is present" time="0.004" classname="CreateReadingHighTemperature"/>
+  </testsuite>
+  <testsuite name="Create Reading - Unauthorized" id="0f476ad6-6b39-4d56-8a05-a0619491fb95" timestamp="2026-06-09T02:00:24.938Z" tests="3" failures="0" errors="0" time="0.004">
+    <testcase name="Status code is 401" time="0.004" classname="CreateReadingUnauthorized"/>
+    <testcase name="Response is problem+json" time="0.004" classname="CreateReadingUnauthorized"/>
+    <testcase name="Error details are correct" time="0.004" classname="CreateReadingUnauthorized"/>
+  </testsuite>
+  <testsuite name="Get Latest Readings" id="9bda8a73-97df-4849-b55f-78ec8fa6d6cd" timestamp="2026-06-09T02:00:24.938Z" tests="3" failures="0" errors="0" time="0.003">
+    <testcase name="Status code is 200" time="0.003" classname="GetLatestReadings"/>
+    <testcase name="Response has items array" time="0.003" classname="GetLatestReadings"/>
+    <testcase name="Items have correct structure" time="0.003" classname="GetLatestReadings"/>
+  </testsuite>
+  <testsuite name="Get Reading by ID" id="1740ad66-ed05-4602-97a1-ca8db5dc9b27" timestamp="2026-06-09T02:00:24.938Z" tests="2" failures="0" errors="0" time="0.003">
+    <testcase name="Status code is 200" time="0.003" classname="GetReadingById"/>
+    <testcase name="Reading details are correct" time="0.003" classname="GetReadingById"/>
+  </testsuite>
+  <testsuite name="Get Reading by ID - Not Found" id="2d015d16-91c0-4c0a-877e-d3d0da86d27c" timestamp="2026-06-09T02:00:24.938Z" tests="3" failures="0" errors="0" time="0.003">
+    <testcase name="Status code is 404" time="0.003" classname="GetReadingByIdNotFound"/>
+    <testcase name="Response is problem+json" time="0.003" classname="GetReadingByIdNotFound"/>
+    <testcase name="Error details are correct" time="0.003" classname="GetReadingByIdNotFound"/>
+  </testsuite>
+</testsuites>
